@@ -134,17 +134,48 @@ else {
 ,
 deleteAd(obj,res){
 if(obj.crud=='delete'){
-    adschema.ads.findOneAndDelete({category:obj.data},(err,doc)=>{
-       if(err){
-           res.status(403).json('DataBase Error');
-       }
-        else if(doc!=null){
-            res.status(200).json({'isDeleted':true});
+adschema.ads.findOne({category:obj.data},(err,doc)=>{
+    if(doc!=null){
+doc.subAds.forEach(subad=>{
+    
+    s3.headObject({
+        Bucket:"big-basket-state-store",
+        Key:subad.imageobj.key
+      },(err,data)=>{
+         
+         if(data!=null){
+        s3.deleteObject({
+            Bucket:"big-basket-state-store",
+            Key:subad.imageobj.key
+          },(err,data)=>{
+              
+           if(err){
+            res.status(403).json('Multer Error')
+           }
+           else if(data.DeleteMarker==true){
+             console.log('yes')
+          
+           }
+          })}
+      })
+    
+})
+    }
 
-        }else {
-            res.status(403).json('No Such Entry Found');
+    adschema.ads.findOneAndDelete({category:obj.data},(err,doc)=>{
+        if(err){
+            res.status(403).json('DataBase Error');
         }
-    })
+         else if(doc!=null){
+             res.status(200).json({'isDeleted':true});
+ 
+         }else {
+             res.status(403).json('No Such Entry Found');
+         }
+     })
+})
+
+ 
 }
 }
 ,
